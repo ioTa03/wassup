@@ -3,7 +3,6 @@ import preprocessor, helper
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 import seaborn as sns
-
 # Set up page configuration (must be the first Streamlit command)
 st.set_page_config(
     page_title="WhatsApp Analyzer",
@@ -16,6 +15,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        /* Full-page spinner background blur */
         .loader-container {
             position: fixed;
             top: 0;
@@ -26,11 +26,12 @@ st.markdown(
             justify-content: center;
             align-items: center;
             background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 9999;
-            flex-direction: column;
+            backdrop-filter: blur(5px); /* Blur the background */
+            z-index: 9999; /* Keep the loader on top */
+            flex-direction: column; /* Stack the spinner and text vertically */
             color: white;
         }
+        /* Spinner styling */
         .loader {
             border: 16px solid #f3f3f3;
             border-top: 16px solid #3498db;
@@ -39,6 +40,7 @@ st.markdown(
             height: 120px;
             animation: spin 2s linear infinite;
         }
+        /* Text Styling */
         .loader-text {
             margin-top: 20px;
             font-size: 20px;
@@ -114,24 +116,23 @@ if uploaded_file:
                 with c4:
                     st.header("Links Shared")
                     st.title(links)
-
-                # Monthly Timeline
+                    # monthly timeline
                 st.title("Monthly Timeline")
                 timeline = helper.monthly_timeline(selected_user, df)
                 fig, ax = plt.subplots()
-                sns.lineplot(data=timeline, x='time', y='message', ax=ax, color='black')
-                ax.set_xticklabels(ax.get_xticks(), rotation=90)
+                ax.plot(timeline['time'], timeline['message'], color='black')
+                plt.xticks(rotation='vertical')
                 st.pyplot(fig)
 
-                # Daily Timeline
+                # daily timeline
                 st.title("Daily Timeline")
                 daily_timeline = helper.daily_timeline(selected_user, df)
                 fig, ax = plt.subplots()
-                sns.lineplot(data=daily_timeline, x='only_date', y='message', ax=ax, color='black')
-                ax.set_xticklabels(ax.get_xticks(), rotation=90)
+                ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='black')
+                plt.xticks(rotation='vertical')
                 st.pyplot(fig)
 
-                # Activity Map
+                # activity map
                 st.title('Activity Map')
                 col1, col2 = st.columns(2)
 
@@ -139,37 +140,37 @@ if uploaded_file:
                     st.header("Most busy day")
                     busy_day = helper.week_activity_map(selected_user, df)
                     fig, ax = plt.subplots()
-                    sns.barplot(x=busy_day.index, y=busy_day.values, ax=ax, color='purple')
-                    ax.set_xticklabels(ax.get_xticks(), rotation=90)
+                    ax.bar(busy_day.index, busy_day.values, color='purple')
+                    plt.xticks(rotation='vertical')
                     st.pyplot(fig)
 
                 with col2:
                     st.header("Most busy month")
                     busy_month = helper.month_activity_map(selected_user, df)
                     fig, ax = plt.subplots()
-                    sns.barplot(x=busy_month.index, y=busy_month.values, ax=ax, color='orange')
-                    ax.set_xticklabels(ax.get_xticks(), rotation=90)
+                    ax.bar(busy_month.index, busy_month.values, color='orange')
+                    plt.xticks(rotation='vertical')
                     st.pyplot(fig)
 
                 st.title("Weekly Activity Map")
                 user_heatmap = helper.activity_heatmap(selected_user, df)
                 fig, ax = plt.subplots()
-                sns.heatmap(user_heatmap, cmap="coolwarm", ax=ax)
+                ax = sns.heatmap(user_heatmap)
                 st.pyplot(fig)
+                # Finding the Busiest Users (Overall view)
 
-                # Busiest Users
+
                 if selected_user == 'Overall':
                     st.title('Busiest People in the Group')
                     x, new_df = helper.most_busy_users(df)
+                    fig, ax = plt.subplots(figsize=(8, 4))
 
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        fig, ax = plt.subplots(figsize=(8, 4))
-                        sns.barplot(x=x.index, y=x.values, ax=ax, color='black')
-                        ax.set_xticklabels(ax.get_xticks(), rotation=90)
+                        ax.bar(x.index, x.values, color='black')
+                        plt.xticks(rotation='vertical')
                         st.pyplot(fig)
-
                     with col2:
                         st.dataframe(new_df)
 
@@ -177,31 +178,39 @@ if uploaded_file:
                 st.title("Word Cloud")
                 df_wc = helper.create_wordcloud(selected_user, df)
                 fig, ax = plt.subplots(figsize=(6, 6))
-                ax.imshow(df_wc)
-                ax.axis("off")
+                plt.imshow(df_wc)
                 st.pyplot(fig)
 
                 # Most Common Words
                 most_common_df = helper.most_common_words(selected_user, df)
-                st.title('Most Common Words')
                 fig, ax = plt.subplots(figsize=(8, 4))
-                sns.barplot(data=most_common_df, y=0, x=1, ax=ax, palette="viridis", orient="h")
-                ax.set_yticklabels(most_common_df[0])
+
+                ax.barh(most_common_df[0], most_common_df[1],color='black')
+                plt.xticks(rotation='vertical')
+
+                st.title('Most Common Words')
                 st.pyplot(fig)
 
-                # Emojis Used
+                # Emojis Used in the Chat
                 emoji_df = helper.emojis_helper(selected_user, df)
                 st.title("Emojis Used in the Chat")
+
+                # Only top 10 emojis
                 top_10_emoji_df = emoji_df.head(10)
 
+                # Specify the path to your font file
                 font_path = "NotoColorEmoji-Regular.ttf"
+
+                # Register the font with Matplotlib
                 prop = font_manager.FontProperties(fname=font_path)
                 plt.rcParams['font.family'] = prop.get_name()
 
-                fig, ax = plt.subplots(figsize=(6, 6))
-                ax.pie(top_10_emoji_df[1], labels=top_10_emoji_df[0], autopct="%0.2f", colors=sns.color_palette("pastel"))
+
+                fig, ax = plt.subplots(figsize=(6, 6))  # Adjust the size as needed
+                ax.pie(top_10_emoji_df[1], labels=top_10_emoji_df[0], autopct="%0.2f")
                 st.pyplot(fig)
 
+            # Removing the loader after the spinner disappears
             st.markdown('<style>.loader-container { display: none; }</style>', unsafe_allow_html=True)
 
     except Exception as e:
